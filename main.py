@@ -1,3 +1,5 @@
+
+
 import pygame
 import os
 import random
@@ -134,6 +136,22 @@ class Obstacle:
     def draw(self, SCREEN):
         SCREEN.blit(self.image[self.type], self.rect)
 
+    def get_info(self):
+        if len(obstacles) > 0:
+            obst = False
+            for obs in obstacles:
+                if obs.rect.left > 84:
+                    obst = obs
+                    break
+            if obst == False:
+                return [-1, -1, -1, -1]
+            dist = obst.rect.left - 160
+            dist_vert = 600 - obst.rect.bottom
+            width = obst.rect.right - obst.rect.left
+            height = obst.rect.bottom - obst.rect.top
+            return [dist, dist_vert, width, height]
+        else:
+            return [-1, -1, -1, -1]
 
 class SmallCactus(Obstacle):
     def __init__(self, image):
@@ -220,6 +238,7 @@ def main():
         for obstacle in obstacles:
             obstacle.draw(SCREEN)
             obstacle.update()
+            print(obstacle.get_info())
             if player.dino_rect.colliderect(obstacle.rect):
                 pygame.time.delay(2000)
                 death_count += 1
