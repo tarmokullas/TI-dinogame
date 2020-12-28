@@ -144,7 +144,7 @@ class Dino:
 
 class Obstacle:
 
-    OBS_WIDTHS = [30, 40, 50]
+    OBS_WIDTHS = [30, 60, 90]
     OBS_HEIGTHS = [20, 45]
     OBS_COLOR = [200,0,0]
 
