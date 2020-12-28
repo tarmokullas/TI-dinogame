@@ -55,6 +55,30 @@ class Dinosaur:
             self.dino_run = True
             self.dino_jump = False
 
+    def updateAI(self, command):
+        if self.dino_duck:
+            self.duck()
+        if self.dino_run:
+            self.run()
+        if self.dino_jump:
+            self.jump()
+
+        if self.step_index >= 10:
+            self.step_index = 0
+
+        if command == "JUMP" and not self.dino_jump:
+            self.dino_duck = False
+            self.dino_run = False
+            self.dino_jump = True
+        elif command == "DUCK" and not self.dino_jump:
+            self.dino_duck = True
+            self.dino_run = False
+            self.dino_jump = False
+        elif not (self.dino_jump or command != "DUCK"):
+            self.dino_duck = False
+            self.dino_run = True
+            self.dino_jump = False
+
     def duck(self):
         self.image = self.duck_img[0]#[self.step_index // 5]
         self.dino_rect = self.image.get_rect()

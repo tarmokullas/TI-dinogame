@@ -111,7 +111,7 @@ def main():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles
     run = True
     clock = pygame.time.Clock()
-    player = Dinosaur()
+    #player = Dinosaur()
     cloud = Cloud()
     game_speed = 20
     x_pos_bg = 0
@@ -158,7 +158,7 @@ def main():
         SCREEN.fill((255, 255, 255))
         userInput = pygame.key.get_pressed()
 
-        player.draw(SCREEN)
+        #player.draw(SCREEN)
         for dino in dino_controller.dinos:
             dino.draw(SCREEN)
 
@@ -173,16 +173,20 @@ def main():
         if len(obstacles) > 0:
             inputs = obstacles[0].get_info() + [game_speed]
             dino_controller.moveAI(inputs)
-            player.update(userInput)
+            #player.update(userInput)
 
         for obstacle in obstacles:
             obstacle.draw(SCREEN)
             obstacle.update()
+            nr_dinos = len(dino_controller.dinos)
+            dead_dinos = 0
             for dino in dino_controller.dinos:
                 if dino.dino_rect.colliderect(obstacle.rect):
-                    pygame.time.delay(2000)
+                    dead_dinos += 1
                     death_count += 1
-                    menu(death_count)
+            if nr_dinos == dead_dinos:
+                pygame.time.delay(1000)
+                main()
             """if player.dino_rect.colliderect(obstacle.rect):
                 pygame.time.delay(2000)
                 death_count += 1

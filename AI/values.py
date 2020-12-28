@@ -39,7 +39,7 @@ epoch = 100
 training = False       # to save weights or not
 fresh_pop = True       # to load weights or not
 
-population = 2
+population = 10
 best_candidates = 2
 
 mutation_rate = 0.5

@@ -5,7 +5,9 @@ from .Population import *
 
 import sys
 import os
+
 sys.path.append(os.pardir)
+
 
 class DinoController:
     def __init__(self, dino_x, dino_y, human, imgJump, imgDuck, num_dino=1, num_best_dino=1, threshold=0.55,
@@ -16,7 +18,8 @@ class DinoController:
         self.play_sound = play_sound
         self.dinos = [Dinosaur() for _ in range(self.num_dino)]
         if not human:
-            self.generation = Population(pop_size=num_dino, best_candidates_size=num_best_dino, mutation_rate=mutation_rate,
+            self.generation = Population(pop_size=num_dino, best_candidates_size=num_best_dino,
+                                         mutation_rate=mutation_rate,
                                          mutation_range=mutation_range, crossing_points=crossing_points)
             self.threshold = threshold
         (self.width, self.height) = scr_size
@@ -59,12 +62,15 @@ class DinoController:
                 continue
 
             jump, duck = movements[i]
+            print(jump, duck)
+            command = "RUN"
             if jump >= self.threshold:
-                dino.jump()
+                command = "JUMP"
+                # dino.jump()
             if duck >= self.threshold:
-                dino.duck()
-            else:
-                dino.run()
+                command = "DUCK"
+                # dino.duck()
+            dino.updateAI(command)
 
             self.generation.population[i].fitness = self.dinos[i].score
 
