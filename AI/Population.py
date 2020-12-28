@@ -28,11 +28,11 @@ class Population:
         return self.best_candidates
 
     def keep_best_candidates(self):
-        self.population.sort(key=lambda genome: genome.fitness, reverse=True)
+        self.population.sort(key=lambda genome: genome.score, reverse=True)
         self.population = self.population[:self.best_candidates_size]
         self.best_candidates = self.population
 
-    def mutations(self):
+    def mutations(self) -> [Genome]:
         new_pop = []
         new_pop_size = self.max_population_size - len(self.population)
         if new_pop_size > self.max_population_size:

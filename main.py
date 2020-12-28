@@ -1,20 +1,18 @@
-
-
 import pygame
 import os
 import random
+
+from AI import values
+from AI.Dinosaur import Dinosaur, RUNNING
+from AI.dino_controller import DinoController
+from AI.values import play_sound, scr_size
+
 pygame.init()
 
 # Global Constants
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 1100
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-RUNNING = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
-           pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
-JUMPING = pygame.image.load(os.path.join("Assets/Dino", "DinoJump.png"))
-DUCKING = [pygame.image.load(os.path.join("Assets/Dino", "DinoDuck1.png")),
-           pygame.image.load(os.path.join("Assets/Dino", "DinoDuck2.png"))]
 
 SMALL_CACTUS = [pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus1.png")),
                 pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus2.png")),
@@ -30,79 +28,7 @@ CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
 
-
-class Dinosaur:
-    X_POS = 80
-    Y_POS = 310
-    Y_POS_DUCK = 340
-    JUMP_VEL = 8.5
-
-    def __init__(self):
-        self.duck_img = DUCKING
-        self.run_img = RUNNING
-        self.jump_img = JUMPING
-
-        self.dino_duck = False
-        self.dino_run = True
-        self.dino_jump = False
-
-        self.step_index = 0
-        self.jump_vel = self.JUMP_VEL
-        self.image = self.run_img[0]
-        self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.X_POS
-        self.dino_rect.y = self.Y_POS
-
-    def update(self, userInput):
-        if self.dino_duck:
-            self.duck()
-        if self.dino_run:
-            self.run()
-        if self.dino_jump:
-            self.jump()
-
-        if self.step_index >= 10:
-            self.step_index = 0
-
-        if userInput[pygame.K_UP] and not self.dino_jump:
-            self.dino_duck = False
-            self.dino_run = False
-            self.dino_jump = True
-        elif userInput[pygame.K_DOWN] and not self.dino_jump:
-            self.dino_duck = True
-            self.dino_run = False
-            self.dino_jump = False
-        elif not (self.dino_jump or userInput[pygame.K_DOWN]):
-            self.dino_duck = False
-            self.dino_run = True
-            self.dino_jump = False
-
-    def duck(self):
-        self.image = self.duck_img[self.step_index // 5]
-        self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.X_POS
-        self.dino_rect.y = self.Y_POS_DUCK
-        self.step_index += 1
-
-    def run(self):
-        self.image = self.run_img[self.step_index // 5]
-        self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.X_POS
-        self.dino_rect.y = self.Y_POS
-        self.step_index += 1
-
-    def jump(self):
-        self.image = self.jump_img
-        if self.dino_jump:
-            self.dino_rect.y -= self.jump_vel * 4
-            self.jump_vel -= 0.8
-        if self.jump_vel < - self.JUMP_VEL:
-            self.dino_jump = False
-            self.jump_vel = self.JUMP_VEL
-
-    def draw(self, SCREEN):
-        SCREEN.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
-
+human = False
 
 class Cloud:
     def __init__(self):
@@ -195,6 +121,14 @@ def main():
     obstacles = []
     death_count = 0
 
+    dino_controller = DinoController(44, 47, human, imgJump=values.dinoJump,
+                                         imgDuck=values.dinoDuck, play_sound=play_sound, scr_size=scr_size,
+                                         num_dino=values.population, num_best_dino=values.best_candidates,
+                                         mutation_rate=values.mutation_rate,
+                                         mutation_range=values.mutation_range,
+                                         crossing_points=values.crossing_points)
+    dino_controller.nextGeneration()
+
     def score():
         global points, game_speed
         points += 1
@@ -225,7 +159,8 @@ def main():
         userInput = pygame.key.get_pressed()
 
         player.draw(SCREEN)
-        player.update(userInput)
+        for dino in dino_controller.dinos:
+            dino.draw(SCREEN)
 
         if len(obstacles) == 0:
             if random.randint(0, 2) == 0:
@@ -235,14 +170,23 @@ def main():
             elif random.randint(0, 2) == 2:
                 obstacles.append(Bird(BIRD))
 
+        if len(obstacles) > 0:
+            inputs = obstacles[0].get_info() + [game_speed]
+            dino_controller.moveAI(inputs)
+            player.update(userInput)
+
         for obstacle in obstacles:
             obstacle.draw(SCREEN)
             obstacle.update()
-            print(obstacle.get_info())
-            if player.dino_rect.colliderect(obstacle.rect):
+            for dino in dino_controller.dinos:
+                if dino.dino_rect.colliderect(obstacle.rect):
+                    pygame.time.delay(2000)
+                    death_count += 1
+                    menu(death_count)
+            """if player.dino_rect.colliderect(obstacle.rect):
                 pygame.time.delay(2000)
                 death_count += 1
-                menu(death_count)
+                menu(death_count)"""
 
         background()
 
@@ -253,6 +197,7 @@ def main():
 
         clock.tick(30)
         pygame.display.update()
+
 
 
 

@@ -12,6 +12,7 @@ class Genome:
         self.output_size = 2
         self.L1 = np.random.randn(self.input_size, self.hidden_size) if L1 is None else L1
         self.L2 = np.random.randn(self.hidden_size, self.output_size) if L2 is None else L2
+        self.score = 0
 
     def predict(self, input):
         z = input.dot(self.L1)
