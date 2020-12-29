@@ -21,6 +21,9 @@ MAX_GAP = 800
 STAT_FONT = pygame.font.SysFont("calibri", 20)
 points = 0
 
+TERRAIN = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
+
+global obstacles
 
 def main():
     global obstacles
@@ -173,7 +176,6 @@ class Obstacle:
             self.bird_flying()
         self.move()
         display.blit(self.image, (self.obs_rect.x, self.obs_rect.y))
-        #pygame.draw.rect(display, self.OBS_COLOR, self.obs_rect)
 
 
 main()
