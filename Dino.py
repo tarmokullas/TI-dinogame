@@ -48,9 +48,10 @@ class Dino:
             self.isRunning = False
 
     def run(self):
-        self.isJumping = False
-        self.isDucking = False
-        self.isRunning = True
+        if not self.isJumping:
+            self.isJumping = False
+            self.isDucking = False
+            self.isRunning = True
 
     def running(self):
         if self.step == 20:
@@ -67,11 +68,12 @@ class Dino:
             neg = 1
             if self.jumpSteps < 0:
                 neg = -1
-            self.y -= (self.jumpSteps ** 2) * 0.05 * neg
+            self.y -= (self.jumpSteps ** 2) * 0.045 * neg
             self.jumpSteps -= 1
         else:
             self.jumpSteps = self.jumpSpeed
             self.isJumping = False
+            self.run()
         self.dino_rect = pygame.Rect(self.x, self.y, self.DINO_WIDTH, self.DINO_HEIGHT)
         self.image = jump_img
 

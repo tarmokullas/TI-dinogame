@@ -11,12 +11,13 @@ pygame.font.init()
 # Global variables
 global WIN_SIZE, WIN_WIDTH, WIN_HEIGHT, GROUND_TICKNESS, MIN_GAP, MAX_GAP, STAT_FONT
 
-WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 800, 400
+WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 1000, 400
 GROUND_TICKNESS = 100
 GROUND_HEIGHT = WIN_HEIGHT - GROUND_TICKNESS
 STAT_FONT = pygame.font.SysFont("calibri", 20)
 gen = 0
 best_score = 0
+läbitud_takistus = []
 
 
 SMALL_CACTUSES = [pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus1.png")),
@@ -71,7 +72,8 @@ class Obstacle:
         self.x -= GAME_SPEED
         self.obs_rect = pygame.Rect(self.x, self.y, self.obs_width, self.obs_height)
         if self.x < 0 - self.obs_width:
-            obstacles.pop(0)
+            global läbitud_takistus
+            läbitud_takistus.append(obstacles.pop(0))
 
     def bird_flying(self):
         if self.step == 20:
@@ -150,7 +152,7 @@ def main(genomes, config):
                         len(obstacles) - 1].x + MAX_GAP)  # Takistuse kaugus eelmisest takistusest
                 else:
                     rnd3 = WIN_WIDTH  # Kõige esimene takistus paigutatakse kohe kuva äärde
-                rnd4 = random.randint(0, 5)  # Kui on 1, siis tuleb lind
+                rnd4 = random.randint(1, 5)  # Kui on 1, siis tuleb lind
 
                 obstacles.append(Obstacle(rnd1, rnd2, rnd3, rnd4))
 
@@ -170,24 +172,63 @@ def main(genomes, config):
             obs_bottom_y = obstacles[obs_id].y + obs_height
             dino_y = dino.y
 
-            output = nets[x].activate((GAME_SPEED, dist_to_obs, obs_width, obs_height, obs_bottom_y, dino_y))
+            if obstacles[obs_id].isBird:
+                obs_width = obstacles[obs_id].obs_width
+                obs_height = obstacles[obs_id].obs_height
+                obs_bottom_y = obstacles[obs_id].y + obs_height
+                dino_y = dino.y
+            else:
+                obs_width = obstacles[obs_id].obs_width
+                obs_height = obstacles[obs_id].obs_height
+                obs_bottom_y = 0
+                dino_y = dino.y
 
-            if output[0] == 1:
+            dino_pos = 0
+            if dino.isRunning:
+                dino_pos = 0
+            if dino.isJumping:
+                dino_pos = 1
+            if dino.isDucking:
+                dino_pos = 2
+
+            output = nets[x].activate((GAME_SPEED, dist_to_obs, obs_width, obs_height, obs_bottom_y, dino_pos))
+
+            if output[0] < 0.5:
                 dino.jump()
-            if output[1] == 1:
+            if output[1] < 0.5:
                 dino.duck()
+            if output[2] < 0.5:
+                dino.run()
 
-        for obs in obstacles:
-            for x, dino in enumerate(dinos):
-                if dino.dino_rect.colliderect(obs.obs_rect):
-                    ge[x].fitness -= 5
-                    dinos.pop(x)
-                    nets.pop(x)
-                    ge.pop(x)
+        for x, dino in enumerate(dinos):
+            if not dino.dino_rect.colliderect(obstacles[obs_id].obs_rect):
+                ge[x].fitness += 10 # Kui kokkupõrget pole, siis suurendada fitness
+                if len(läbitud_takistus) > 0:
+                    ge[x].fitness += 20 # Läbitud takistus annab fitnessi
+                    läbitud_takistus.pop()
+                if obstacles[obs_id].isBird and dino.ducking():
+                    ge[x].fitness += 5
+
+            else:
+                ge[x].fitness -= 100 # Kui kokkupõrge, siis vähenda fitness
+
+                if not obstacles[obs_id].isBird:  # Kui takistus on kaktus
+                    if dino.isJumping:
+                        ge[x].fitness += 15 # Kui dinasaurus põrkab hüppel kokku, siis suurenda fitnessi
+                    elif dino.dino_rect.height == dino.DINO_HEIGHT:
+                        ge[x].fitness += 15 # Kui dinasaurus ei kummarda, siis suurenda fitnessi
+
+                else: # Kui takistus on lind
+                    if dino.x > obstacles[obs_id].x:
+                        ge[x].fitness += 20 # Kui dinosaurus põrkab kokku linnuga, sest unduckib liiga vara, siis suurenda fitnessi
+                    if dino.isJumping or dino.isRunning:
+                        ge[x].fitness -= 75 # Kui dinosaurus põrkab kokku linnuga, sest jookseb või hüppab, siis vähenda ftinessi
+
+                dinos.pop(x)
+                nets.pop(x)
+                ge.pop(x)
 
         score()
-        for g in ge:
-            g.fitness += 2
 
         draw(window, dinos, obstacles, gen, len(dinos), best_score)  # Kõikide elementide kuvamine
 
@@ -228,8 +269,8 @@ def score():
         points += 1
         if points % 250 == 0:
             GAME_SPEED += 1  # Suurenda mängukiirust
-            MIN_GAP += 40  # Suurenda minimaalset takistuste vahet
-            MAX_GAP += 45  # Suurenda maksimaalset takistuste vahet
+            MIN_GAP += 60  # Suurenda minimaalset takistuste vahet
+            MAX_GAP += 70  # Suurenda maksimaalset takistuste vahet
         if points > best_score:
             best_score = points
 
@@ -245,7 +286,7 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     population.add_reporter(stats)
 
-    winner = population.run(main, 50)
+    winner = population.run(main, 150)
 
 
 if __name__ == "__main__":
