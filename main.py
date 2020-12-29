@@ -111,7 +111,6 @@ def main():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles
     run = True
     clock = pygame.time.Clock()
-    #player = Dinosaur()
     cloud = Cloud()
     game_speed = 20
     x_pos_bg = 0
@@ -128,6 +127,8 @@ def main():
                                          mutation_range=values.mutation_range,
                                          crossing_points=values.crossing_points)
     dino_controller.nextGeneration()
+
+    nr_dinos = len(dino_controller.dinos)
 
     def score():
         global points, game_speed
@@ -160,7 +161,8 @@ def main():
 
         #player.draw(SCREEN)
         for dino in dino_controller.dinos:
-            dino.draw(SCREEN)
+            if not dino.isDead:
+                dino.draw(SCREEN)
 
         if len(obstacles) == 0:
             if random.randint(0, 2) == 0:
@@ -170,27 +172,27 @@ def main():
             elif random.randint(0, 2) == 2:
                 obstacles.append(Bird(BIRD))
 
-        if len(obstacles) > 0:
-            inputs = obstacles[0].get_info() + [game_speed]
-            dino_controller.moveAI(inputs)
-            #player.update(userInput)
-
         for obstacle in obstacles:
             obstacle.draw(SCREEN)
             obstacle.update()
-            nr_dinos = len(dino_controller.dinos)
-            dead_dinos = 0
+
+        if len(obstacles) > 0:
+            inputs = obstacles[0].get_info() + [game_speed]
+            dino_controller.moveAI(inputs)
+        if len(obstacles) > 0:
             for dino in dino_controller.dinos:
-                if dino.dino_rect.colliderect(obstacle.rect):
-                    dead_dinos += 1
+                if dino.dino_rect.colliderect(obstacles[0].rect):
+                    dino.isDead = True
                     death_count += 1
-            if nr_dinos == dead_dinos:
-                pygame.time.delay(1000)
-                main()
-            """if player.dino_rect.colliderect(obstacle.rect):
-                pygame.time.delay(2000)
-                death_count += 1
-                menu(death_count)"""
+
+        dead_dinos = 0
+        for dino in dino_controller.dinos:
+            dead_dinos += dino.isDead
+        if nr_dinos <= dead_dinos:
+            print(nr_dinos, dead_dinos)
+            pygame.time.delay(1000)
+            main()
+        print(nr_dinos, dead_dinos)
 
         background()
 
@@ -201,8 +203,6 @@ def main():
 
         clock.tick(30)
         pygame.display.update()
-
-
 
 
 def menu(death_count):

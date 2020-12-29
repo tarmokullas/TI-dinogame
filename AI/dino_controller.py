@@ -62,7 +62,7 @@ class DinoController:
                 continue
 
             jump, duck = movements[i]
-            print(jump, duck)
+            #print(jump, duck)
             command = "RUN"
             if jump >= self.threshold:
                 command = "JUMP"
