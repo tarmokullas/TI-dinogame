@@ -94,4 +94,3 @@ class Dino:
         else:
             self.running()
         display.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
-        #pygame.draw.rect(display, self.DINO_COLOR, self.dino_rect)
