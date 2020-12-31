@@ -1,4 +1,6 @@
 import os
+import pickle
+
 import neat
 import pygame
 import random
@@ -17,9 +19,10 @@ GROUND_HEIGHT = WIN_HEIGHT - GROUND_TICKNESS
 STAT_FONT = pygame.font.SysFont("calibri", 20)
 gen = 0
 best_score = 0
+all_time_best_score = 0
 läbitud_takistus = []
 
-
+# Takistuste pildid
 SMALL_CACTUSES = [pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus1.png")),
                   pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus2.png")),
                   pygame.image.load(os.path.join("Assets/Cactus", "SmallCactus3.png"))]
@@ -52,7 +55,7 @@ class Obstacle:
         self.x = rnd3  # Kaugus eelmisest takistusest
 
         if rnd4 == 1:  # Siis on lind
-            self.y = GROUND_HEIGHT - 75
+            self.y = GROUND_HEIGHT - 80
             self.obs_width = 30
             self.obs_height = 30
             self.obs_rect = pygame.Rect(self.x, self.y, self.obs_width, self.obs_height)
@@ -92,11 +95,15 @@ class Obstacle:
 
 
 def main(genomes, config):
+
+    global WIN_SIZE, WIN_WIDTH, WIN_HEIGHT
+    WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 1000, 400
+
     nets = []
     ge = []
     dinos = []
 
-    for __, g in genomes:
+    for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         dinos.append(Dino(100, GROUND_HEIGHT - 60))
@@ -114,6 +121,8 @@ def main(genomes, config):
     MIN_GAP = 280
     MAX_GAP = 800
     points = 0
+
+    load_all_time_best_score()
 
     obstacles = []
 
@@ -230,10 +239,13 @@ def main(genomes, config):
 
         score()
 
-        draw(window, dinos, obstacles, gen, len(dinos), best_score)  # Kõikide elementide kuvamine
+        draw(window, dinos, obstacles, gen, len(dinos), best_score, all_time_best_score)  # Kõikide elementide kuvamine
+
+    WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 600, 600
+    pygame.display.set_mode(WIN_SIZE)
 
 
-def draw(win, dinos, obstacles, gen, alive, best_score):
+def draw(win, dinos, obstacles, gen, alive, best_score, all_time_best_score):
     pygame.draw.rect(win, (240, 240, 240), (0, 0, WIN_WIDTH, WIN_HEIGHT))  # Tausta joonistamine
     pygame.draw.rect(win, (100, 100, 100), (0, GROUND_HEIGHT, WIN_WIDTH, GROUND_TICKNESS))  # Maapinna joonistamine
 
@@ -252,6 +264,9 @@ def draw(win, dinos, obstacles, gen, alive, best_score):
     text = STAT_FONT.render("BESTSCORE: " + str(best_score), 1, (0, 0, 0))
     win.blit(text, (20, 80))
 
+    text = STAT_FONT.render("ALL-TIME BEST: " + str(all_time_best_score), 1, (0, 0, 0))
+    win.blit(text, (20, 110))
+
     for dino in dinos:
         dino.draw(win)  # Dinosauruse joonistamine
 
@@ -264,7 +279,7 @@ def draw(win, dinos, obstacles, gen, alive, best_score):
 
 # Puktide suurendamine
 def score():
-    global points, GAME_SPEED, MIN_GAP, MAX_GAP, best_score
+    global points, GAME_SPEED, MIN_GAP, MAX_GAP, best_score, all_time_best_score
     if GAME_SPEED != 0:
         points += 1
         if points % 250 == 0:
@@ -273,9 +288,18 @@ def score():
             MAX_GAP += 70  # Suurenda maksimaalset takistuste vahet
         if points > best_score:
             best_score = points
+            if best_score > all_time_best_score:
+                all_time_best_score = best_score
+                save_all_time_best_score()
 
 
-def run(config_path):
+def run_new_game():
+    global gen, best_score
+    gen = 0
+    best_score = 0
+
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, "config-feedforward.txt")
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
                                 neat.DefaultSpeciesSet, neat.DefaultStagnation,
                                 config_path)
@@ -286,10 +310,136 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     population.add_reporter(stats)
 
-    winner = population.run(main, 150)
+    winner = population.run(main, 10)
+
+    # Salvestab parima genoomi andmed faili
+    save_best_genome(winner)
+
+
+def save_all_time_best_score(all_time_best_score_path="all_time_best_score.txt"):
+    with open(all_time_best_score_path, "w") as f:
+        f.write(str(all_time_best_score))
+        f.close()
+
+
+def load_all_time_best_score(all_time_best_score_path="all_time_best_score.txt"):
+    if os.path.exists(all_time_best_score_path):
+        with open(all_time_best_score_path, "r") as f:
+            global all_time_best_score
+            all_time_best_score = int(f.readline())
+            f.close()
+        print("All-time best score loaded from", all_time_best_score_path)
+
+
+def save_best_genome(best_genome, best_genome_path="best_genome.pkl"):
+    with open(best_genome_path, "wb") as f:
+        pickle.dump(best_genome, f)
+        f.close()
+    print("Saved best genome to", best_genome_path)
+
+
+# https://stackoverflow.com/questions/61365668/applying-saved-neat-python-genome-to-test-environment-after-training
+def run_best_genome(config_path="config-feedforward.txt", best_genome_path="best_genome.pkl"):
+    global gen, best_score
+    gen = 0
+    best_score = 0
+
+    # Load required NEAT config
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
+
+    # Unpickle saved winner
+    with open(best_genome_path, "rb") as f:
+        genome = pickle.load(f)
+        f.close()
+
+    # Convert loaded genome into required data structure
+    genomes = [(1, genome)]
+
+    # Call game with only the loaded genome
+    main(genomes, config)
+
+
+def main_menu():
+
+    WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = (600, 600)
+
+    window = pygame.display.set_mode(WIN_SIZE)
+    pygame.display.set_caption("Dino Run AI")
+
+    title_font = pygame.font.SysFont('Corbel', 60)
+    title_text = title_font.render('Dino Run Game', True, (50, 50, 50))
+
+    authors_font = pygame.font.SysFont('Corbel', 20)
+    authors_text = authors_font.render('Made by Tarmo Kullas & Mikko Maran', True, (50, 50, 50))
+
+    button_font = pygame.font.SysFont('Corbel', 35)
+    quit_text = button_font.render('Quit', True, (50, 50, 50))
+    best_genome_text = button_font.render('Run all-time best genome', True, (50, 50, 50))
+    new_population_text = button_font.render('Run game with new population', True, (50, 50, 50))
+
+    button_texts = [new_population_text, best_genome_text, quit_text]
+
+    while True:
+
+        mouse = pygame.mouse.get_pos()
+
+        for ev in pygame.event.get():
+
+            if ev.type == pygame.QUIT:
+                pygame.quit()
+
+            # Hiire vajutuste jälgimine
+            if ev.type == pygame.MOUSEBUTTONDOWN:
+
+                # Nuppude vajutamine
+                for i, button_text in enumerate(button_texts):
+                    button_width = button_text.get_rect().width + 50
+                    button_height = 50
+                    button_x = WIN_WIDTH / 2 - button_width / 2
+                    button_y = 250 + i * 100
+
+                    # Nuppude vajutamine
+                    if button_x <= mouse[0] <= button_x + button_width and button_y <= mouse[1] <= button_y + button_height:
+                        # Run game with new population nupu vajutamine
+                        if i == 0:
+                            run_new_game()
+                        # Run all-time best genome nupu vajutamine
+                        elif i == 1:
+                            run_best_genome()
+                        # Quit nupu vajutamine
+                        elif i == 2:
+                            pygame.quit()
+
+        # Ekraani taustavärv
+        window.fill((240, 240, 240))
+
+        # Mängu pealkiri
+        title_rect = title_text.get_rect(center=(WIN_WIDTH/2, 120))
+        window.blit(title_text, title_rect)
+
+        # Autorid
+        authors_rect = title_text.get_rect(center=(WIN_WIDTH/2 + 25, 190))
+        window.blit(authors_text, authors_rect)
+
+        # Nuppude kuvamine
+        for i, button_text in enumerate(button_texts):
+            button_width = button_text.get_rect().width + 50
+            button_height = 50
+            button_x = WIN_WIDTH/2 - button_width/2
+            button_y = 250 + i*100
+            draw_button(window, button_text, button_width, button_height, button_x, button_y)
+
+        pygame.display.update()
+
+
+def draw_button(window, text, button_width, button_height, button_x, button_y):
+    # Nupu kuvamine
+    pygame.draw.rect(window, (200, 200, 200), [button_x, button_y, button_width, button_height])
+
+    # Kiri nupul
+    text_rect = text.get_rect(center=(button_x + button_width / 2, button_y + button_height / 2))
+    window.blit(text, text_rect)
 
 
 if __name__ == "__main__":
-    local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, "config-feedforward.txt")
-    run(config_path)
+    main_menu()

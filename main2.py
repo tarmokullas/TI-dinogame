@@ -140,7 +140,7 @@ class Obstacle:
         self.x = rnd3  # Kaugus eelmisest takistusest
 
         if rnd4 == 1:  # Siis on lind
-            self.y = GROUND_HEIGHT - 75
+            self.y = GROUND_HEIGHT - 80
             self.obs_width = 30
             self.obs_height = 30
             self.obs_rect = pygame.Rect(self.x, self.y, self.obs_width, self.obs_height)
