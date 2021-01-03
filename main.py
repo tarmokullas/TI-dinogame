@@ -39,8 +39,9 @@ bird_img = [pygame.transform.scale(img, (30, 30)) for img in BIRDS]
 
 
 class Obstacle:
+
     OBS_WIDTHS = [30, 60, 90]
-    OBS_HEIGTHS = [20, 45]
+    OBS_HEIGHTS = [20, 45]
     OBS_COLOR = [200, 0, 0]
 
     x = WIN_WIDTH
@@ -64,7 +65,7 @@ class Obstacle:
             self.isBird = True
         else:  # Muul juhul tavaline takistus
             self.obs_width = self.OBS_WIDTHS[rnd1]
-            self.obs_height = self.OBS_HEIGTHS[rnd2]
+            self.obs_height = self.OBS_HEIGHTS[rnd2]
             self.y = GROUND_HEIGHT - self.obs_height
             self.obs_rect = pygame.Rect(self.x, self.y, self.obs_width, self.obs_height)
             if rnd2 == 0:
@@ -73,12 +74,15 @@ class Obstacle:
                 self.image = large_cactus_img[rnd1]
 
     def move(self):
-        self.x -= GAME_SPEED
+        self.x -= GAME_SPEED # Liiguta x-teljel edasi mängukiiruse võrra
         self.obs_rect = pygame.Rect(self.x, self.y, self.obs_width, self.obs_height)
+
+        # Kui takistus möödub akna vasakust äärest (x = 0 teljest), siis eemalda takistus takistuste listist
         if self.x < 0 - self.obs_width:
             global läbitud_takistus
             läbitud_takistus.append(obstacles.pop(0))
 
+    # Linnu lendamise animeerimine
     def bird_flying(self):
         if self.step == 20:
             self.step = 0
@@ -88,13 +92,14 @@ class Obstacle:
         else:
             self.image = bird_img[1]
 
+    # Takistuse joonistamine
     def draw(self, display):
         if self.isBird:
             self.bird_flying()
         self.move()
         display.blit(self.image, (self.obs_rect.x, self.obs_rect.y))
 
-
+# Tehisintellekti juhitav mäng
 def main(genomes, config):
 
     global WIN_SIZE, WIN_WIDTH, WIN_HEIGHT
@@ -104,6 +109,7 @@ def main(genomes, config):
     ge = []
     dinos = []
 
+    # Iga genoomi kohta loome närvivõrgu ja uue Dino, mida kontrollida
     for _, g in genomes:
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
@@ -139,18 +145,6 @@ def main(genomes, config):
                 pygame.quit()
                 quit()
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    # dino.jump()
-                    pass
-                if event.key == pygame.K_DOWN:
-                    # dino.duck()
-                    pass
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_DOWN:
-                    # dino.move()
-                    pass
-
         # Takistuste genereerimine
         if len(obstacles) < 4:
             for i in range(4 - len(obstacles)):
@@ -166,8 +160,10 @@ def main(genomes, config):
 
                 obstacles.append(Obstacle(rnd1, rnd2, rnd3, rnd4))
 
+        # Järgmise takistuse haldamine
         obs_id = 0
         if len(dinos) > 0:
+            # Kui takistus on möödunud Dino x-koordinaadist, siis võta järgmine takistus
             if len(obstacles) > 1 and dinos[0].x > obstacles[0].x + obstacles[0].obs_width:
                 obs_id = 1
         else:
@@ -175,24 +171,19 @@ def main(genomes, config):
             game_over_overlay(window)
             break
 
+        # Ennustamine, Dino käsklust leidmine
         for x, dino in enumerate(dinos):
 
             dist_to_obs = obstacles[obs_id].x - (dino.x + dino.dino_rect.width)
-            obs_width = obstacles[obs_id].obs_width
-            obs_height = obstacles[obs_id].obs_height
-            obs_bottom_y = obstacles[obs_id].y + obs_height
-            dino_y = dino.y
 
             if obstacles[obs_id].isBird:
                 obs_width = obstacles[obs_id].obs_width
                 obs_height = obstacles[obs_id].obs_height
                 obs_bottom_y = obstacles[obs_id].y + obs_height
-                dino_y = dino.y
             else:
                 obs_width = obstacles[obs_id].obs_width
                 obs_height = obstacles[obs_id].obs_height
                 obs_bottom_y = 0
-                dino_y = dino.y
 
             dino_pos = 0
             if dino.isRunning:
@@ -211,6 +202,7 @@ def main(genomes, config):
             if output[2] < 0.5:
                 dino.run()
 
+        # Fitness funktsioon
         for x, dino in enumerate(dinos):
             if not dino.dino_rect.colliderect(obstacles[obs_id].obs_rect):
                 ge[x].fitness += 10  # Kui kokkupõrget pole, siis suurendada fitness
@@ -235,6 +227,7 @@ def main(genomes, config):
                     if dino.isJumping or dino.isRunning:
                         ge[x].fitness -= 75  # Kui dinosaurus põrkab kokku linnuga, sest jookseb või hüppab, siis vähenda ftinessi
 
+                # Kokkupõrke korral eemaldame vaadeldava Dino ja tema närvivõrgu ning genoomi.
                 dinos.pop(x)
                 nets.pop(x)
                 ge.pop(x)
@@ -246,7 +239,7 @@ def main(genomes, config):
     WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = 600, 600
     pygame.display.set_mode(WIN_SIZE)
 
-
+# Inimese juhitav mäng
 def human_plays():
 
     global WIN_SIZE, WIN_WIDTH, WIN_HEIGHT
@@ -329,7 +322,7 @@ def game_over_overlay(window):
     pygame.display.update()
     pygame.time.wait(2000)
 
-
+# Kaadrite joonistamine AI mängu korral
 def draw(win, dinos, obstacles, gen, alive, best_score, all_time_best_score):
     pygame.draw.rect(win, (240, 240, 240), (0, 0, WIN_WIDTH, WIN_HEIGHT))  # Tausta joonistamine
     pygame.draw.rect(win, (100, 100, 100), (0, GROUND_HEIGHT, WIN_WIDTH, GROUND_TICKNESS))  # Maapinna joonistamine
@@ -361,7 +354,7 @@ def draw(win, dinos, obstacles, gen, alive, best_score, all_time_best_score):
 
     pygame.display.update()  # Akna uuendamine
 
-
+# Kaadrite joonistamine inimese mängu korral
 def draw2(win, dino, obstacles, best_score, all_time_best_score):
     pygame.draw.rect(win, (240, 240, 240), (0, 0, WIN_WIDTH, WIN_HEIGHT))  # Tausta joonistamine
     pygame.draw.rect(win, (100, 100, 100), (0, GROUND_HEIGHT, WIN_WIDTH, GROUND_TICKNESS))  # Maapinna joonistamine
@@ -408,6 +401,7 @@ def run_new_game():
     gen = 0
     best_score = 0
 
+    # Neat-i konfiguratsiooni sisselugemine. Selle abil õpib AI
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "config-feedforward.txt")
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -468,7 +462,6 @@ def run_best_genome(config_path="config-feedforward.txt", best_genome_path="best
     # Call game with only the loaded genome
     main(genomes, config)
 
-
 def main_menu():
 
     WIN_SIZE = WIN_WIDTH, WIN_HEIGHT = (600, 600)
@@ -525,6 +518,7 @@ def main_menu():
                         elif i == 3:
                             pygame.quit()
                             quit()
+
         # Ekraani taustavärv
         window.fill((240, 240, 240))
 
