@@ -339,7 +339,7 @@ def draw(win, dinos, obstacles, gen, alive, best_score, all_time_best_score):
     text = STAT_FONT.render("ALIVE: " + str(alive), 1, (0, 0, 0))
     win.blit(text, (20, 50))
 
-    text = STAT_FONT.render("BESTSCORE: " + str(best_score), 1, (0, 0, 0))
+    text = STAT_FONT.render("BEST SCORE: " + str(best_score), 1, (0, 0, 0))
     win.blit(text, (20, 80))
 
     text = STAT_FONT.render("ALL-TIME BEST: " + str(all_time_best_score), 1, (0, 0, 0))
@@ -365,7 +365,7 @@ def draw2(win, dino, obstacles, best_score, all_time_best_score):
     text = STAT_FONT.render("GAMESPEED: " + str(GAME_SPEED), 1, (0, 0, 0))
     win.blit(text, (WIN_WIDTH - 20 - text.get_width(), 50))
 
-    text = STAT_FONT.render("BESTSCORE: " + str(best_score), 1, (0, 0, 0))
+    text = STAT_FONT.render("BEST SCORE: " + str(best_score), 1, (0, 0, 0))
     win.blit(text, (20, 20))
 
     text = STAT_FONT.render("ALL-TIME BEST: " + str(all_time_best_score), 1, (0, 0, 0))
